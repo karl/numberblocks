@@ -36,10 +36,6 @@ const Boxes = ({ number, position }) => {
   const mesh = useRef<InstancedMesh>();
   const devices = useMemo(() => new Object3D(), []);
 
-  if (isNaN(number)) {
-    return null;
-  }
-
   useFrame(({ camera }) => {
     camera.position.set(position[0], position[1], position[2]);
     camera.updateProjectionMatrix();
@@ -83,9 +79,9 @@ const BoxesPage = () => {
   // const mesh = useRef<Mesh>();
   const [numberString, setNumberString] = useState<string>("1");
 
-  let number = parseInt(numberString, 10);
+  let number = parseInt(numberString, 10) || 0;
   if (number > MAX) {
-    number = NaN;
+    number = 0;
   }
 
   const position = isNaN(number)
