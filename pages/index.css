@@ -1,16 +1,19 @@
+@import url("https://fonts.googleapis.com/css2?family=Quicksand:wght@700&display=swap");
+
 body {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100vh;
   background: #f5f5f5;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
-    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  font-family: "Quicksand", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  letter-spacing: 0.3rem;
 }
 
 canvas {
   width: 100%;
-  height: 100vh;
+  height: 85vh;
 }
 
 h1 {
@@ -18,6 +21,8 @@ h1 {
   justify-content: center;
   align-content: center;
   color: #444444;
+  margin: 0;
+  padding: 10px;
 }
 
 .number-input-wrapper {
@@ -27,5 +32,5 @@ h1 {
 
 .number {
   text-align: center;
-  font-size: 20px;
+  font-size: 50px;
 }
