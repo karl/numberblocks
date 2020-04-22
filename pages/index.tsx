@@ -2,7 +2,8 @@ import React, { useRef, useState, useMemo, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "react-three-fiber";
 import { Mesh, InstancedMesh, Object3D, PerspectiveCamera } from "three";
 
-const MAX = 10000;
+const MAX_CUBES = 10000;
+const CUBE_SIZE_WITH_MARGIN = 1.05;
 
 const Box = (props) => {
   // const mesh = useRef<Mesh>();
@@ -47,7 +48,12 @@ const Boxes = ({ number, position }) => {
     Array(number)
       .fill(0)
       .map((_, i) => {
-        devices.position.set(Math.floor(i / 10) * 1.05, (i % 10) * 1.05, 0);
+        const numberPosition = calcNumberPosition(i, number);
+        devices.position.set(
+          numberPosition[0],
+          numberPosition[1],
+          numberPosition[2]
+        );
         devices.updateMatrix();
         mesh.current.setMatrixAt(i, devices.matrix);
       });
@@ -57,13 +63,48 @@ const Boxes = ({ number, position }) => {
 
   return (
     // @ts-ignore
-    <instancedMesh ref={mesh} args={[null, null, MAX]}>
+    <instancedMesh ref={mesh} args={[null, null, MAX_CUBES]}>
       <boxBufferGeometry attach="geometry" args={[1, 1, 1]} />
       <meshPhongMaterial attach="material" color="#9e0409" />
       // @ts-ignore
     </instancedMesh>
   );
 };
+
+function calcNumberPosition(i: number, total: number) {
+  let value = 0;
+  let remainder = i;
+
+  value = Math.floor(remainder / 1000);
+  remainder = i % 1000;
+
+  const thx = 0;
+  const thy = 0;
+  const thz = -value * 1.1;
+
+  value = Math.floor(remainder / 100);
+  remainder = i % 100;
+
+  const hx = 0;
+  const hy = value * 10 * 1.1;
+  const hz = 0;
+
+  value = Math.floor(remainder / 10);
+  remainder = i % 10;
+
+  const tx = value * CUBE_SIZE_WITH_MARGIN;
+  const ty = 0;
+  const tz = 0;
+
+  const ux = 0;
+  const uy = remainder * CUBE_SIZE_WITH_MARGIN;
+  const uz = 0;
+
+  const x = ux + tx + hx + thx;
+  const y = uy + ty + hy + thy;
+  const z = uz + tz + hz + thz;
+  return [x, y, z];
+}
 
 function Camera(props) {
   const ref = useRef<PerspectiveCamera>();
@@ -80,7 +121,7 @@ const BoxesPage = () => {
   const [numberString, setNumberString] = useState<string>("1");
 
   let number = parseInt(numberString, 10) || 0;
-  if (number > MAX) {
+  if (number > MAX_CUBES) {
     number = 0;
   }
 
@@ -106,7 +147,7 @@ const BoxesPage = () => {
           value={numberString}
           onChange={(e) => setNumberString(e.target.value)}
           min={1}
-          max={MAX}
+          max={MAX_CUBES}
         />
       </div>
 
