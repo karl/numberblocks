@@ -1,9 +1,109 @@
 import React, { useRef, useState, useMemo, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "react-three-fiber";
 import { Mesh, InstancedMesh, Object3D, PerspectiveCamera } from "three";
+import numberToEnglish from "./numberToWords";
 
 const MAX_CUBES = 10000;
 const CUBE_SIZE_WITH_MARGIN = 1.05;
+
+const MAX_NUMBER = 1000000000000000;
+
+const placeValues = [
+  {
+    name: "Units",
+    shortName: "U",
+    value: 1,
+  },
+  {
+    name: "Tens",
+    shortName: "T",
+    value: 10,
+  },
+  {
+    name: "Hundreds",
+    shortName: "H",
+    value: 100,
+  },
+  {
+    name: "Thousands",
+    shortName: "Th",
+    value: 1000,
+  },
+  {
+    name: "Ten Thousands",
+    shortName: "T Th",
+    value: 10000,
+  },
+  {
+    name: "Hundred Thousands",
+    shortName: "H Th",
+    value: 100000,
+  },
+  {
+    name: "Millions",
+    shortName: "M",
+    value: 1000000,
+  },
+  {
+    name: "Ten Millions",
+    shortName: "T M",
+    value: 10000000,
+  },
+  {
+    name: "Hundred Millions",
+    shortName: "H M",
+    value: 100000000,
+  },
+  {
+    name: "Billions",
+    shortName: "B",
+    value: 1000000000,
+  },
+  {
+    name: "Ten Billions",
+    shortName: "T B",
+    value: 10000000000,
+  },
+  {
+    name: "Hundred Billions",
+    shortName: "H B",
+    value: 100000000000,
+  },
+  {
+    name: "Trillions",
+    shortName: "Tr",
+    value: 1000000000000,
+  },
+  {
+    name: "Ten Trillions",
+    shortName: "T Tr",
+    value: 10000000000000,
+  },
+  {
+    name: "Hundred Trillions",
+    shortName: "H Tr",
+    value: 100000000000000,
+  },
+  {
+    name: "Quadrillions",
+    shortName: "Q",
+    value: 1000000000000000,
+  },
+];
+
+const splitIntoParts = (num: number) => {
+  return placeValues
+    .map((placeValue) => {
+      return {
+        ...placeValue,
+        amount:
+          placeValue.value <= num
+            ? Math.floor((num % (placeValue.value * 10)) / placeValue.value)
+            : undefined,
+      };
+    })
+    .filter((placeValue) => placeValue.amount !== undefined);
+};
 
 const Box = (props) => {
   // const mesh = useRef<Mesh>();
@@ -121,16 +221,18 @@ const BoxesPage = () => {
   const [numberString, setNumberString] = useState<string>("1");
 
   let number = parseInt(numberString, 10) || 0;
-  if (number > MAX_CUBES) {
-    number = 0;
+  if (number > MAX_NUMBER) {
+    number = MAX_NUMBER;
   }
+
+  const parts = splitIntoParts(number);
 
   const position = isNaN(number)
     ? undefined
     : [
-        2.5 + Math.floor((number - 1) / 10) * 0.5,
+        2 + Math.floor((Math.min(number, 100) - 1) / 10) * 0.5,
         0, //Math.min(number, 10) * 0.5,
-        10 + Math.floor((number - 1) / 10) * 0.7,
+        10 + Math.floor((Math.min(number, 1000) - 1) / 10) * 0.7,
       ];
 
   return (
@@ -139,22 +241,41 @@ const BoxesPage = () => {
 
       <div className="number-input-wrapper">
         <input
+          className="number-input"
           value={numberString}
           onChange={(e) => setNumberString(e.target.value)}
         />
+      </div>
+      <div className="number-input-wrapper">
         <input
+          className="number-range"
           type="range"
           value={numberString}
           onChange={(e) => setNumberString(e.target.value)}
-          min={1}
-          max={MAX_CUBES}
+          min={0}
+          max={1000}
         />
       </div>
 
       <div className="number">{isNaN(number) ? "" : number}</div>
 
+      <div className="numberInWords">
+        {isNaN(number) ? "" : numberToEnglish(number)}
+      </div>
+
+      <div className="placeValues">
+        {[...parts].reverse().map((placeValue) => (
+          <div key={placeValue.value} className="placeValue">
+            <div className="name">{placeValue.name}</div>
+            <div className="shortName">
+              <b>{placeValue.shortName}</b>
+            </div>
+            <div className="amount">{placeValue.amount}</div>
+          </div>
+        ))}
+      </div>
+
       <Canvas
-        // key={number}
         camera={{
           position,
           rotation: [0.3, 0, 0],
