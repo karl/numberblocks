@@ -33,6 +33,8 @@ h1 {
 .number-range {
   display: block;
   width: 100%;
+  margin: 10px 20px;
+  zoom: 3;
 }
 
 .number {

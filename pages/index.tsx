@@ -1,154 +1,266 @@
 import React, { useRef, useState, useMemo, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "react-three-fiber";
-import { Mesh, InstancedMesh, Object3D, PerspectiveCamera } from "three";
+import { InstancedMesh, Object3D } from "three";
 import numberToEnglish from "./numberToWords";
-
-const MAX_CUBES = 10000;
-const CUBE_SIZE_WITH_MARGIN = 1.05;
 
 const MAX_NUMBER = 1000000000000000;
 
-const placeValues = [
+enum Direction {
+  UP = "UP",
+  LEFT = "LEFT",
+}
+
+interface PlaceValue {
+  name: string;
+  shortName: string;
+  value: number;
+  direction: Direction;
+  width: number;
+  height: number;
+  depth: number;
+}
+
+interface PlaceValueWithAmount extends PlaceValue {
+  amount: number;
+  offset: number;
+}
+
+const colorMap = [
+  '#b82728',
+  '#e38433',
+  '#e8e253',
+  '#68dc43',
+  '#68dc43',
+  '#68c0d9',
+  '#5129d0',
+  '#9a59c0',
+  '#db4d95',
+  '#a8adab',
+  '#ececea'
+];
+
+const placeValues: PlaceValue[] = [
   {
     name: "Units",
     shortName: "U",
     value: 1,
+    direction: Direction.UP,
+    width: 1,
+    height: 1,
+    depth: 1,
   },
   {
     name: "Tens",
     shortName: "T",
     value: 10,
+    direction: Direction.LEFT,
+    width: 1,
+    height: 10,
+    depth: 1,
   },
   {
     name: "Hundreds",
     shortName: "H",
     value: 100,
+    direction: Direction.UP,
+    width: 10,
+    height: 10,
+    depth: 1,
   },
   {
     name: "Thousands",
     shortName: "Th",
     value: 1000,
+    direction: Direction.UP,
+    width: 10,
+    height: 10,
+    depth: 10,
   },
   {
     name: "Ten Thousands",
     shortName: "T Th",
     value: 10000,
+    direction: Direction.LEFT,
+    width: 10,
+    height: 100,
+    depth: 10,
   },
   {
     name: "Hundred Thousands",
     shortName: "H Th",
     value: 100000,
+    direction: Direction.UP,
+    width: 100,
+    height: 100,
+    depth: 10,
   },
   {
     name: "Millions",
     shortName: "M",
     value: 1000000,
+    direction: Direction.UP,
+    width: 100,
+    height: 100,
+    depth: 100,
   },
   {
     name: "Ten Millions",
     shortName: "T M",
     value: 10000000,
+    direction: Direction.LEFT,
+    width: 100,
+    height: 1000,
+    depth: 100,
   },
   {
     name: "Hundred Millions",
     shortName: "H M",
     value: 100000000,
+    direction: Direction.UP,
+    width: 1000,
+    height: 1000,
+    depth: 100,
   },
   {
     name: "Billions",
     shortName: "B",
     value: 1000000000,
+    direction: Direction.UP,
+    width: 1000,
+    height: 1000,
+    depth: 1000,
   },
   {
     name: "Ten Billions",
     shortName: "T B",
     value: 10000000000,
+    direction: Direction.LEFT,
+    width: 1000,
+    height: 10000,
+    depth: 1000,
   },
   {
     name: "Hundred Billions",
     shortName: "H B",
     value: 100000000000,
+    direction: Direction.LEFT,
+    width: 10000,
+    height: 10000,
+    depth: 1000,
   },
   {
     name: "Trillions",
     shortName: "Tr",
     value: 1000000000000,
+    direction: Direction.UP,
+    width: 10000,
+    height: 10000,
+    depth: 10000,
   },
   {
     name: "Ten Trillions",
     shortName: "T Tr",
     value: 10000000000000,
+    direction: Direction.UP,
+    width: 10000,
+    height: 100000,
+    depth: 10000,
   },
   {
     name: "Hundred Trillions",
     shortName: "H Tr",
     value: 100000000000000,
+    direction: Direction.LEFT,
+    width: 100000,
+    height: 100000,
+    depth: 10000,
   },
   {
     name: "Quadrillions",
     shortName: "Q",
     value: 1000000000000000,
+    direction: Direction.UP,
+    width: 100000,
+    height: 100000,
+    depth: 100000,
   },
 ];
 
-const splitIntoParts = (num: number) => {
+const splitIntoParts = (num: number): PlaceValueWithAmount[] => {
+  let offset = -1;
   return placeValues
     .map((placeValue) => {
+      const amount =
+        placeValue.value <= num
+          ? Math.floor((num % (placeValue.value * 10)) / placeValue.value)
+          : undefined;
+
+      if (amount !== undefined && amount !== 0) {
+        if (placeValue.direction === Direction.UP) {
+          offset += placeValue.width;
+        } else if (placeValue.direction === Direction.LEFT) {
+          offset += placeValue.width * amount;
+        }
+      }
+
       return {
         ...placeValue,
-        amount:
-          placeValue.value <= num
-            ? Math.floor((num % (placeValue.value * 10)) / placeValue.value)
-            : undefined,
+        amount,
+        offset,
       };
     })
-    .filter((placeValue) => placeValue.amount !== undefined);
+    .filter((placeValue) => placeValue.amount !== undefined)
+    .reverse();
 };
 
-const Box = (props) => {
-  // const mesh = useRef<Mesh>();
-
-  const [hovered, setHover] = useState(false);
-  // const [active, setActive] = useState(false);
-
-  // useFrame(() => {
-  //   mesh.current.rotation.y += 0.005;
-  // });
-
-  return (
-    <mesh
-      {...props}
-      // ref={mesh}
-      scale={[5, 5, 5]}
-      // onClick={(e) => setActive(!active)}
-      onPointerOver={(e) => setHover(true)}
-      onPointerOut={(e) => setHover(false)}
-    >
-      <boxBufferGeometry attach="geometry" args={[1, 1, 1]} />
-      <meshStandardMaterial
-        attach="material"
-        color={hovered ? "#7d0205" : "#9e0409"}
-      />
-    </mesh>
-  );
-};
-
-const Boxes = ({ number, position }) => {
-  const mesh = useRef<InstancedMesh>();
-  const devices = useMemo(() => new Object3D(), []);
-
+const Camera = ({ position }) => {
   useFrame(({ camera }) => {
     camera.position.set(position[0], position[1], position[2]);
     camera.updateProjectionMatrix();
   });
 
-  useFrame(() => {
-    mesh.current.count = number;
+  return null;
+};
 
-    Array(number)
+const calcNumberPosition = (i: number, placeValue: PlaceValueWithAmount) => {
+  const x = -placeValue.offset + placeValue.width / 2;
+  const y = placeValue.height / 2;
+  const z = placeValue.depth / 2;
+
+  let dx;
+  let dy;
+  let dz;
+
+  if (placeValue.direction === Direction.UP) {
+    dx = 0;
+    dy = i * placeValue.height;
+    dz = 0;
+  } else if (placeValue.direction === Direction.LEFT) {
+    dx = i * placeValue.width;
+    dy = 0;
+    dz = 0;
+  }
+
+  return [x + dx, y + dy, z + dz];
+};
+
+const Boxes = ({
+  placeValue,
+  color,
+}: {
+  placeValue: PlaceValueWithAmount;
+  color: string;
+}) => {
+  const mesh = useRef<InstancedMesh>();
+  const devices = useMemo(() => new Object3D(), []);
+
+  useFrame(() => {
+    mesh.current.count = placeValue.amount;
+
+    Array(placeValue.amount)
       .fill(0)
       .map((_, i) => {
-        const numberPosition = calcNumberPosition(i, number);
+        const numberPosition = calcNumberPosition(i, placeValue);
         devices.position.set(
           numberPosition[0],
           numberPosition[1],
@@ -163,62 +275,20 @@ const Boxes = ({ number, position }) => {
 
   return (
     // @ts-ignore
-    <instancedMesh ref={mesh} args={[null, null, MAX_CUBES]}>
-      <boxBufferGeometry attach="geometry" args={[1, 1, 1]} />
-      <meshPhongMaterial attach="material" color="#9e0409" />
+    <instancedMesh ref={mesh} args={[null, null, 10]}>
+      <boxBufferGeometry
+        attach="geometry"
+        args={[placeValue.width, placeValue.height, placeValue.depth]}
+      />
+      <meshPhongMaterial attach="material" color={color} />
       // @ts-ignore
     </instancedMesh>
   );
 };
 
-function calcNumberPosition(i: number, total: number) {
-  let value = 0;
-  let remainder = i;
-
-  value = Math.floor(remainder / 1000);
-  remainder = i % 1000;
-
-  const thx = 0;
-  const thy = 0;
-  const thz = -value * 1.1;
-
-  value = Math.floor(remainder / 100);
-  remainder = i % 100;
-
-  const hx = 0;
-  const hy = value * 10 * 1.1;
-  const hz = 0;
-
-  value = Math.floor(remainder / 10);
-  remainder = i % 10;
-
-  const tx = value * CUBE_SIZE_WITH_MARGIN;
-  const ty = 0;
-  const tz = 0;
-
-  const ux = 0;
-  const uy = remainder * CUBE_SIZE_WITH_MARGIN;
-  const uz = 0;
-
-  const x = ux + tx + hx + thx;
-  const y = uy + ty + hy + thy;
-  const z = uz + tz + hz + thz;
-  return [x, y, z];
-}
-
-function Camera(props) {
-  const ref = useRef<PerspectiveCamera>();
-  const { setDefaultCamera } = useThree();
-  // Make the camera known to the system
-  useEffect(() => void setDefaultCamera(ref.current), []);
-  // Update it every frame
-  useFrame(() => ref.current.updateMatrixWorld());
-  return <perspectiveCamera ref={ref} {...props} />;
-}
-
 const BoxesPage = () => {
-  // const mesh = useRef<Mesh>();
   const [numberString, setNumberString] = useState<string>("1");
+  const [color, setColor] = useState<string>("#9e0409");
 
   let number = parseInt(numberString, 10) || 0;
   if (number > MAX_NUMBER) {
@@ -227,17 +297,25 @@ const BoxesPage = () => {
 
   const parts = splitIntoParts(number);
 
+  console.log(parts);
+
   const position = isNaN(number)
     ? undefined
     : [
         2 + Math.floor((Math.min(number, 100) - 1) / 10) * 0.5,
         0, //Math.min(number, 10) * 0.5,
-        10 + Math.floor((Math.min(number, 1000) - 1) / 10) * 0.7,
+        15 + Math.floor((Math.min(number, 1000) - 1) / 10) * 0.7,
       ];
 
   return (
     <>
       <h1>Numberblocks Creator</h1>
+
+      <input
+        type="color"
+        value={color}
+        onChange={(e) => setColor(e.target.value)}
+      />
 
       <div className="number-input-wrapper">
         <input
@@ -264,7 +342,7 @@ const BoxesPage = () => {
       </div>
 
       <div className="placeValues">
-        {[...parts].reverse().map((placeValue) => (
+        {parts.map((placeValue) => (
           <div key={placeValue.value} className="placeValue">
             <div className="name">{placeValue.name}</div>
             <div className="shortName">
@@ -283,7 +361,10 @@ const BoxesPage = () => {
       >
         <ambientLight intensity={0.1} />
         <pointLight position={[0, 0, 40]} rotation={[0.5, 0.5, 0.5]} />
-        <Boxes number={number} position={position} />
+        <Camera position={position} />
+        {parts.map((placeValue) => (
+          <Boxes key={placeValue.name} placeValue={placeValue} color={color} />
+        ))}
       </Canvas>
     </>
   );
