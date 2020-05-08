@@ -25,19 +25,44 @@ interface PlaceValueWithAmount extends PlaceValue {
   offset: number;
 }
 
-const colorMap = [
-  '#b82728',
-  '#e38433',
-  '#e8e253',
-  '#68dc43',
-  '#68dc43',
-  '#68c0d9',
-  '#5129d0',
-  '#9a59c0',
-  '#db4d95',
-  '#a8adab',
-  '#ececea'
+const colors = [
+  "#000000",
+  "#b82728",
+  "#e38433",
+  "#e8e253",
+  "#68dc43",
+  "#68c0d9",
+  "#5129d0",
+  "#9a59c0",
+  "#db4d95",
+  "#a8adab",
+  "#ececea",
+  "#cacdcc",
+  "#878a8d",
 ];
+
+const getColor = (placeValue: PlaceValueWithAmount, index: number): string => {
+  if (placeValue.direction === Direction.LEFT && placeValue.amount === 1) {
+    return colors[10];
+  }
+
+  if (placeValue.amount === 7) {
+    return colors[index + 1];
+  }
+
+  if (placeValue.amount === 9) {
+    if (index < 3) {
+      return colors[11];
+    }
+    if (index < 6) {
+      return colors[9];
+    } else {
+      return colors[12];
+    }
+  }
+
+  return colors[placeValue.amount];
+};
 
 const placeValues: PlaceValue[] = [
   {
@@ -244,51 +269,32 @@ const calcNumberPosition = (i: number, placeValue: PlaceValueWithAmount) => {
   return [x + dx, y + dy, z + dz];
 };
 
-const Boxes = ({
-  placeValue,
-  color,
-}: {
-  placeValue: PlaceValueWithAmount;
-  color: string;
-}) => {
-  const mesh = useRef<InstancedMesh>();
-  const devices = useMemo(() => new Object3D(), []);
-
-  useFrame(() => {
-    mesh.current.count = placeValue.amount;
-
-    Array(placeValue.amount)
-      .fill(0)
-      .map((_, i) => {
-        const numberPosition = calcNumberPosition(i, placeValue);
-        devices.position.set(
-          numberPosition[0],
-          numberPosition[1],
-          numberPosition[2]
-        );
-        devices.updateMatrix();
-        mesh.current.setMatrixAt(i, devices.matrix);
-      });
-
-    mesh.current.instanceMatrix.needsUpdate = true;
-  });
-
+const Boxes = ({ placeValue }: { placeValue: PlaceValueWithAmount }) => {
   return (
-    // @ts-ignore
-    <instancedMesh ref={mesh} args={[null, null, 10]}>
-      <boxBufferGeometry
-        attach="geometry"
-        args={[placeValue.width, placeValue.height, placeValue.depth]}
-      />
-      <meshPhongMaterial attach="material" color={color} />
-      // @ts-ignore
-    </instancedMesh>
+    <>
+      {Array(placeValue.amount)
+        .fill(0)
+        .map((_, i) => {
+          const numberPosition = calcNumberPosition(i, placeValue);
+          return (
+            <mesh
+              position={numberPosition}
+              scale={[placeValue.width, placeValue.height, placeValue.depth]}
+            >
+              <boxBufferGeometry attach="geometry" args={[1, 1, 1]} />
+              <meshStandardMaterial
+                attach="material"
+                color={getColor(placeValue, i)}
+              />
+            </mesh>
+          );
+        })}
+    </>
   );
 };
 
 const BoxesPage = () => {
   const [numberString, setNumberString] = useState<string>("1");
-  const [color, setColor] = useState<string>("#9e0409");
 
   let number = parseInt(numberString, 10) || 0;
   if (number > MAX_NUMBER) {
@@ -296,8 +302,6 @@ const BoxesPage = () => {
   }
 
   const parts = splitIntoParts(number);
-
-  console.log(parts);
 
   const position = isNaN(number)
     ? undefined
@@ -310,12 +314,6 @@ const BoxesPage = () => {
   return (
     <>
       <h1>Numberblocks Creator</h1>
-
-      <input
-        type="color"
-        value={color}
-        onChange={(e) => setColor(e.target.value)}
-      />
 
       <div className="number-input-wrapper">
         <input
@@ -363,7 +361,7 @@ const BoxesPage = () => {
         <pointLight position={[0, 0, 40]} rotation={[0.5, 0.5, 0.5]} />
         <Camera position={position} />
         {parts.map((placeValue) => (
-          <Boxes key={placeValue.name} placeValue={placeValue} color={color} />
+          <Boxes key={placeValue.name} placeValue={placeValue} />
         ))}
       </Canvas>
     </>
