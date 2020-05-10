@@ -1,7 +1,9 @@
-import React, { useRef, useState, useMemo, useEffect } from "react";
-import { Canvas, useFrame, useThree } from "react-three-fiber";
-import { InstancedMesh, Object3D } from "three";
+import React, { useState, useRef } from "react";
+import { Canvas, useFrame, useThree, extend } from "react-three-fiber";
 import numberToEnglish from "./numberToWords";
+import { OrbitControls } from "./OrbitControls";
+
+extend({ OrbitControls });
 
 const MAX_NUMBER = 1000000000000000;
 
@@ -247,10 +249,15 @@ const Camera = ({ position }) => {
   return null;
 };
 
-const calcNumberPosition = (i: number, placeValue: PlaceValueWithAmount) => {
-  const x = -placeValue.offset + placeValue.width / 2;
-  const y = placeValue.height / 2;
-  const z = placeValue.depth / 2;
+const calcNumberPosition = (
+  i: number,
+  placeValue: PlaceValueWithAmount,
+  width: number,
+  height: number
+) => {
+  const x = width / 2 - placeValue.offset + placeValue.width / 2;
+  const y = -height / 2 + placeValue.height / 2;
+  const z = -placeValue.depth / 2;
 
   let dx;
   let dy;
@@ -269,19 +276,32 @@ const calcNumberPosition = (i: number, placeValue: PlaceValueWithAmount) => {
   return [x + dx, y + dy, z + dz];
 };
 
-const Boxes = ({ placeValue }: { placeValue: PlaceValueWithAmount }) => {
+const Boxes = ({
+  placeValue,
+  width,
+  height,
+}: {
+  placeValue: PlaceValueWithAmount;
+  width: number;
+  height: number;
+}) => {
   return (
     <>
       {Array(placeValue.amount)
         .fill(0)
         .map((_, i) => {
-          const numberPosition = calcNumberPosition(i, placeValue);
+          const numberPosition = calcNumberPosition(
+            i,
+            placeValue,
+            width,
+            height
+          );
           return (
-            <mesh
-              position={numberPosition}
-              scale={[placeValue.width, placeValue.height, placeValue.depth]}
-            >
-              <boxBufferGeometry attach="geometry" args={[1, 1, 1]} />
+            <mesh key={i} position={numberPosition}>
+              <boxBufferGeometry
+                attach="geometry"
+                args={[placeValue.width, placeValue.height, placeValue.depth]}
+              />
               <meshStandardMaterial
                 attach="material"
                 color={getColor(placeValue, i)}
@@ -290,6 +310,22 @@ const Boxes = ({ placeValue }: { placeValue: PlaceValueWithAmount }) => {
           );
         })}
     </>
+  );
+};
+
+const Controls = () => {
+  const { camera, gl } = useThree();
+  const ref = useRef();
+  // @ts-ignore
+  useFrame(() => ref.current.update());
+  return (
+    // @ts-ignore
+    <orbitControls
+      ref={ref}
+      target={[0, 0, 0]}
+      enableDamping
+      args={[camera, gl.domElement]}
+    />
   );
 };
 
@@ -302,13 +338,19 @@ const BoxesPage = () => {
   }
 
   const parts = splitIntoParts(number);
+  const height = parts[0]
+    ? parts[0].direction === Direction.UP
+      ? parts[0].height * parts[0].amount
+      : parts[0].height
+    : 0;
+  const width = parts[0] ? parts[0].offset : 0;
 
   const position = isNaN(number)
     ? undefined
     : [
-        2 + Math.floor((Math.min(number, 100) - 1) / 10) * 0.5,
-        0, //Math.min(number, 10) * 0.5,
-        15 + Math.floor((Math.min(number, 1000) - 1) / 10) * 0.7,
+        0, // 0.5 - Math.floor(width / 2),
+        0, // Math.floor(height / 2),
+        8 + Math.floor(height),
       ];
 
   return (
@@ -353,15 +395,27 @@ const BoxesPage = () => {
 
       <Canvas
         camera={{
+          fov: 50,
           position,
-          rotation: [0.3, 0, 0],
+          // zoom: 0.5,
+          rotation: [0, 0, 0],
         }}
       >
-        <ambientLight intensity={0.1} />
-        <pointLight position={[0, 0, 40]} rotation={[0.5, 0.5, 0.5]} />
+        {/* <Controls /> */}
+        <ambientLight intensity={0.5} />
+        <pointLight
+          intensity={0.5}
+          position={[0, 0, 40]}
+          rotation={[0.5, 0.5, 0.5]}
+        />
         <Camera position={position} />
         {parts.map((placeValue) => (
-          <Boxes key={placeValue.name} placeValue={placeValue} />
+          <Boxes
+            key={placeValue.name}
+            placeValue={placeValue}
+            width={width}
+            height={height}
+          />
         ))}
       </Canvas>
     </>
