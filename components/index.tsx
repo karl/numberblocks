@@ -170,7 +170,7 @@ const placeValues: PlaceValue[] = [
     name: "Hundred Billions",
     shortName: "H B",
     value: 100000000000,
-    direction: Direction.LEFT,
+    direction: Direction.UP,
     width: 10000,
     height: 10000,
     depth: 1000,
@@ -188,7 +188,7 @@ const placeValues: PlaceValue[] = [
     name: "Ten Trillions",
     shortName: "T Tr",
     value: 10000000000000,
-    direction: Direction.UP,
+    direction: Direction.LEFT,
     width: 10000,
     height: 100000,
     depth: 10000,
@@ -197,7 +197,7 @@ const placeValues: PlaceValue[] = [
     name: "Hundred Trillions",
     shortName: "H Tr",
     value: 100000000000000,
-    direction: Direction.LEFT,
+    direction: Direction.UP,
     width: 100000,
     height: 100000,
     depth: 10000,
@@ -340,11 +340,15 @@ const BoxesPage = () => {
   }
 
   const parts = splitIntoParts(number);
-  const height = parts[0]
-    ? parts[0].direction === Direction.UP
-      ? parts[0].height * parts[0].amount
-      : parts[0].height
-    : 0;
+  const height = parts
+    .map((part) =>
+      part
+        ? part.direction === Direction.UP
+          ? part.height * part.amount
+          : part.height
+        : 0
+    )
+    .reduce((height, acc) => Math.max(height, acc), 0);
   const width = parts[0] ? parts[0].offset : 0;
 
   const position = isNaN(number)
@@ -400,9 +404,11 @@ const BoxesPage = () => {
           fov: 50,
           position: [0, 0, 8],
           rotation: [0, 0, 0],
+          far: 1000000,
         }}
+
       >
-        <Controls zoom={position[2] * 1.1} />
+        <Controls zoom={position[2] * 1.4} />
         <ambientLight intensity={0.5} />
         <pointLight
           intensity={0.5}
