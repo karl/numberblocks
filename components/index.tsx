@@ -214,7 +214,7 @@ const placeValues: PlaceValue[] = [
 ];
 
 const splitIntoParts = (num: number): PlaceValueWithAmount[] => {
-  let offset = -1;
+  let offset = 0;
   return placeValues
     .map((placeValue) => {
       const amount =
@@ -257,7 +257,7 @@ const calcNumberPosition = (
 ) => {
   const x = width / 2 - placeValue.offset + placeValue.width / 2;
   const y = -height / 2 + placeValue.height / 2;
-  const z = -placeValue.depth / 2;
+  const z = 0.5 - placeValue.depth / 2;
 
   let dx;
   let dy;
@@ -313,7 +313,7 @@ const Boxes = ({
   );
 };
 
-const Controls = () => {
+const Controls = ({ zoom }) => {
   const { camera, gl } = useThree();
   const ref = useRef();
   // @ts-ignore
@@ -325,6 +325,8 @@ const Controls = () => {
       target={[0, 0, 0]}
       enableDamping
       args={[camera, gl.domElement]}
+      minDistance={zoom}
+      maxDistance={zoom}
     />
   );
 };
@@ -396,19 +398,18 @@ const BoxesPage = () => {
       <Canvas
         camera={{
           fov: 50,
-          position,
-          // zoom: 0.5,
+          position: [0, 0, 8],
           rotation: [0, 0, 0],
         }}
       >
-        {/* <Controls /> */}
+        <Controls zoom={position[2] * 1.1} />
         <ambientLight intensity={0.5} />
         <pointLight
           intensity={0.5}
-          position={[0, 0, 40]}
+          position={[0, 30, 40]}
           rotation={[0.5, 0.5, 0.5]}
         />
-        <Camera position={position} />
+        {/* <Camera position={position} /> */}
         {parts.map((placeValue) => (
           <Boxes
             key={placeValue.name}
